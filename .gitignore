@@ -1,0 +1,41 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build/test artifacts
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Images (keep in docs/ if needed via override)
+*.png
+*.jpg
+*.jpeg
+
+# Temporary files
+tmp/
+*.tmp
+*.log

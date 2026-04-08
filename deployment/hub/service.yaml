@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hub
+  namespace: datahub-hub
+  labels:
+    app: datahub-hub
+    component: hub
+spec:
+  type: ClusterIP
+  selector:
+    app: datahub-hub
+    component: hub
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hub-external
+  namespace: datahub-hub
+  labels:
+    app: datahub-hub
+    component: hub
+spec:
+  type: LoadBalancer
+  selector:
+    app: datahub-hub
+    component: hub
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP

@@ -1,0 +1,37 @@
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+
+sources:
+  connection_timeout: 30s
+  health_check_interval: 30s
+  unhealthy_threshold: 3
+  recovery_threshold: 2
+
+exposers:
+  # AI Agent API (in AI agent K8s cluster)
+  - name: ai-agent-api
+    permissions:
+      - label: user-data
+        operations: ["getUserById", "getUsersByFilter"]
+      - label: payment-data
+        operations: ["getUserPayments", "getTransactionHistory"]
+        
+  # Xano Integration (for external access)
+  - name: xano-api
+    permissions:
+      - label: user-data
+        operations: ["*"]
+      - label: payment-data
+        operations: ["*"]
+        
+  # Internal Tools (full access)
+  - name: internal-api
+    permissions:
+      - label: "*"
+        operations: ["*"]
+
+logging:
+  level: INFO
+  format: json

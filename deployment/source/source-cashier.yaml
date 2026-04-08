@@ -1,0 +1,30 @@
+source:
+  name: cashier-source-01
+  label: payment-data
+  version: 1.0.0
+  
+hub:
+  endpoint: hub-external.example.com:50051
+  reconnect_interval: 5s
+  max_reconnect_attempts: -1
+  
+database:
+  type: ""  # Not using direct DB access
+  
+restapi:
+  enabled: true
+  base_url: http://payops-api.internal:8080
+  timeout: 10s
+  
+operations:
+  - name: getUserPayments
+    timeout: 10s
+    cache_ttl: 0s
+    
+  - name: getTransactionHistory
+    timeout: 15s
+    cache_ttl: 0s
+    
+  - name: getAccountBalance
+    timeout: 5s
+    cache_ttl: 0s

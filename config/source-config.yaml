@@ -1,0 +1,32 @@
+source:
+  name: hybrid-source-01
+  label: user-data
+  version: 1.0.0
+  
+hub:
+  endpoint: localhost:50051
+  reconnect_interval: 5s
+  max_reconnect_attempts: 10
+  
+database:
+  type: postgresql
+  max_connections: 20
+  query_timeout: 10s
+
+restapi:
+  enabled: true
+  base_url: http://mock-payment:8080
+  timeout: 10s
+  
+operations:
+  - name: getUserById
+    timeout: 5s
+    cache_ttl: 0s
+    
+  - name: getUsersByFilter
+    timeout: 30s
+    max_limit: 1000
+    
+  - name: getUserPayments
+    timeout: 10s
+    cache_ttl: 0s

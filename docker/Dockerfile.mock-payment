@@ -1,0 +1,31 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the mock payment service
+COPY examples/mock-payment-service.go .
+
+# Build
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/mock-payment mock-payment-service.go
+
+# Final stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+COPY --from=builder /app/bin/mock-payment /app/mock-payment
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8080
+
+CMD ["/app/mock-payment"]

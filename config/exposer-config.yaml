@@ -1,0 +1,16 @@
+exposer:
+  name: api-west-01
+  
+hub:
+  endpoint: localhost:8080
+  timeout: 30s
+  
+api:
+  port: 3000
+  rate_limit:
+    enabled: false
+  cors:
+    enabled: true
+    origins: []
+    # origins:
+    #   - "https://your-app.example.com"

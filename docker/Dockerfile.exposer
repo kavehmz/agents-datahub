@@ -1,0 +1,35 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the exposer binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/exposer ./exposer
+
+# Final stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /app/bin/exposer /app/exposer
+
+# Copy default config
+COPY config/exposer-config.yaml /app/config.yaml
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 3000
+
+CMD ["/app/exposer", "-config", "/app/config.yaml"]

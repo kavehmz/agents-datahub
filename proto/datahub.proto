@@ -1,0 +1,140 @@
+syntax = "proto3";
+package datahub;
+
+option go_package = "github.com/regentmarkets/agents-datahub/proto";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============ Source to Hub Communication ============
+
+service DataHub {
+  // Bidirectional streaming for source connection
+  rpc ConnectSource(stream SourceMessage) returns (stream HubMessage);
+  
+  // HTTP/2 endpoint for exposer queries
+  rpc ExecuteQuery(QueryRequest) returns (QueryResponse);
+}
+
+// Messages from Source to Hub
+message SourceMessage {
+  oneof message {
+    SourceRegistration registration = 1;
+    QueryResult query_result = 2;
+    HealthStatus health_status = 3;
+    SourceError error = 4;
+  }
+}
+
+// Messages from Hub to Source
+message HubMessage {
+  oneof message {
+    RegistrationAck registration_ack = 1;
+    QueryExecution query_execution = 2;
+    HealthCheckRequest health_check = 3;
+  }
+}
+
+// Source Registration
+message SourceRegistration {
+  string name = 1;                    // Unique source identifier
+  string label = 2;                   // Category for round-robin
+  string version = 3;                 // API version
+  string auth_token = 4;              // Authentication token
+  repeated Operation operations = 5;   // Supported operations
+  SourceCapabilities capabilities = 6; // Optional capabilities
+}
+
+message Operation {
+  string name = 1;                           // Operation identifier
+  string description = 2;                    // Human-readable description
+  google.protobuf.Struct input_schema = 3;   // JSON Schema for input
+  google.protobuf.Struct output_schema = 4;  // JSON Schema for output
+  int32 timeout_seconds = 5;                 // Operation timeout
+}
+
+message SourceCapabilities {
+  int32 max_concurrent_queries = 1;
+  bool supports_transactions = 2;
+  bool supports_batch_queries = 3;
+}
+
+message RegistrationAck {
+  bool success = 1;
+  string message = 2;
+  string assigned_id = 3;  // Hub-assigned connection ID
+}
+
+// Query Execution
+message QueryExecution {
+  string query_id = 1;                        // Unique query identifier
+  string operation = 2;                       // Operation to execute
+  google.protobuf.Struct parameters = 3;      // Query parameters
+  QueryMetadata metadata = 4;                 // Query metadata
+}
+
+message QueryResult {
+  string query_id = 1;
+  bool success = 2;
+  google.protobuf.Struct data = 3;           // Result data
+  string error_message = 4;                   // Error if success=false
+  int64 execution_time_ms = 5;               // Query execution time
+}
+
+// Health Check
+message HealthCheckRequest {
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+message HealthStatus {
+  bool healthy = 1;
+  string status_message = 2;
+  SourceMetrics metrics = 3;
+}
+
+message SourceMetrics {
+  int32 active_connections = 1;
+  int32 queries_processed = 2;
+  double avg_response_time_ms = 3;
+  int64 uptime_seconds = 4;
+}
+
+message SourceError {
+  string error_code = 1;
+  string error_message = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// ============ Exposer to Hub Communication ============
+
+message QueryRequest {
+  string exposer_name = 1;                    // Exposer identifier
+  string auth_token = 2;                      // Exposer auth token
+  string label = 3;                          // Target data label
+  string operation = 4;                       // Operation to execute
+  google.protobuf.Struct parameters = 5;      // Query parameters
+  QueryMetadata metadata = 6;                 // Query metadata
+}
+
+message QueryResponse {
+  string query_id = 1;
+  bool success = 2;
+  google.protobuf.Struct data = 3;           // Response data
+  string error_message = 4;
+  QueryTrace trace = 5;                      // Execution trace
+}
+
+message QueryMetadata {
+  string query_id = 1;                       // Unique query ID
+  string client_id = 2;                      // Optional client identifier
+  google.protobuf.Timestamp timestamp = 3;
+  map<string, string> headers = 4;          // Additional headers
+}
+
+message QueryTrace {
+  string source_name = 1;                    // Which source handled it
+  int64 hub_processing_ms = 2;
+  int64 source_execution_ms = 3;
+  int64 total_time_ms = 4;
+  repeated string trace_points = 5;         // Debug trace points
+}

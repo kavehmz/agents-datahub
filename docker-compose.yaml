@@ -1,0 +1,105 @@
+services:
+  # PostgreSQL Database for testing
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./examples/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Mock Payment Service (for REST API source testing)
+  mock-payment:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mock-payment
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Hub Service
+  hub:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.hub
+    environment:
+      - TOKEN_SOURCE_postgres-prod-01=${TOKEN_SOURCE_POSTGRES}
+      - TOKEN_SOURCE_hybrid-source-01=${TOKEN_SOURCE_HYBRID}
+      - TOKEN_EXPOSER_api-west-01=${TOKEN_EXPOSER_WEST}
+      - GRPC_PORT=50051
+      - HTTP_PORT=8080
+      - METRICS_PORT=9090
+    ports:
+      - "50051:50051"  # gRPC
+      - "8080:8080"    # HTTP
+      - "9090:9090"    # Metrics
+    volumes:
+      - ./config/hub-config.yaml:/app/config.yaml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Source Service (Hybrid: PostgreSQL + REST API)
+  source:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.source
+    environment:
+      - SOURCE_NAME=hybrid-source-01
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - HUB_ENDPOINT=hub:50051
+      - SOURCE_AUTH_TOKEN=${TOKEN_SOURCE_HYBRID}
+      - RESTAPI_AUTH_TOKEN=${RESTAPI_AUTH_TOKEN}
+    volumes:
+      - ./config/source-config.yaml:/app/config.yaml
+    depends_on:
+      hub:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mock-payment:
+        condition: service_healthy
+    restart: on-failure
+
+  # Exposer Service
+  exposer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.exposer
+    environment:
+      - EXPOSER_NAME=api-west-01
+      - HUB_ENDPOINT=hub:8080
+      - EXPOSER_AUTH_TOKEN=${TOKEN_EXPOSER_WEST}
+      - TOKEN_CLIENT_web-app=${TOKEN_CLIENT_WEBAPP}
+      - TOKEN_CLIENT_test-client=${TOKEN_CLIENT_TEST}
+      - API_PORT=3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config/exposer-config.yaml:/app/config.yaml
+    depends_on:
+      hub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+.env.*
+*.md
+docs/
+deployment/
+examples/*.sh
+*.png
+PROPOSAL.md
+spec.md

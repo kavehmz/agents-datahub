@@ -1,0 +1,14 @@
+exposer:
+  name: ai-agent-api
+  
+hub:
+  endpoint: hub.example.com:8080
+  timeout: 30s
+  
+api:
+  port: 3000
+  cors:
+    enabled: true
+    origins:
+      - "https://ai-agents.example.com"
+      - "https://cs-dashboard.example.com"

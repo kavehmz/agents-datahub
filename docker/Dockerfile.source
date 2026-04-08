@@ -1,0 +1,33 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the source binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/source ./source
+
+# Final stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /app/bin/source /app/source
+
+# Copy default config
+COPY config/source-config.yaml /app/config.yaml
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+CMD ["/app/source", "-config", "/app/config.yaml"]

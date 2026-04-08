@@ -1,0 +1,32 @@
+server:
+  grpc_port: 50051
+  http_port: 8080
+  metrics_port: 9090
+
+sources:
+  connection_timeout: 30s
+  health_check_interval: 30s
+  unhealthy_threshold: 3
+  recovery_threshold: 2
+
+exposers:
+  - name: api-west-01
+    permissions:
+      - label: user-data
+        operations: ["*"]
+      - label: analytics-data
+        operations: ["getMetrics"]
+        
+  - name: api-east-01
+    permissions:
+      - label: user-data
+        operations: ["getUserById"]
+        
+  - name: internal-api-01
+    permissions:
+      - label: "*"
+        operations: ["*"]
+
+logging:
+  level: INFO
+  format: json

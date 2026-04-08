@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exposer
+  namespace: datahub-exposer
+  labels:
+    app: datahub-exposer
+    component: exposer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: datahub-exposer
+      component: exposer
+  template:
+    metadata:
+      labels:
+        app: datahub-exposer
+        component: exposer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: exposer
+        image: your-registry.io/datahub/exposer:v1.0.0
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: API_PORT
+          value: "3000"
+        - name: DATADOG_ENDPOINT
+          value: "datadog-agent.monitoring:8125"
+        envFrom:
+        - secretRef:
+            name: exposer-secrets
+        volumeMounts:
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: exposer-config.yaml
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: config
+        configMap:
+          name: exposer-config
